@@ -65,6 +65,48 @@ const uint8_t heartChar[] = {
   B00001100,
 };
 
+// Christmas icons
+const int NUM_XMAS_ICONS = 3;
+const char xmasIconChars[] = {'^', '&', '%'};  // tree, star, snowflake
+int currentXmasIcon = 0;
+unsigned long lastXmasIconSwap = 0;
+
+// Tree character (maps to '^')
+const uint8_t treeChar[] = {
+  7,
+  B01000000,
+  B01101000,
+  B01111100,
+  B11111111,
+  B01111100,
+  B01101000,
+  B01000000,
+};
+
+// Star character (maps to '&')
+const uint8_t starChar[] = {
+  7,
+  B00001000,
+  B01011000,
+  B00100100,
+  B00010010,
+  B00100100,
+  B01011000,
+  B00001000,
+};
+
+// Snowflake character (maps to '%')
+const uint8_t snowflakeChar[] = {
+  7,
+  B00010010,
+  B01010100,
+  B00111000,
+  B11111111,
+  B00111000,
+  B01010100,
+  B00010010,
+};
+
 void setup() {
   Serial.begin(9600);
   
@@ -79,23 +121,28 @@ void setup() {
   myDisplay.setTextAlignment(PA_CENTER);
   myDisplay.displayClear();
 
-  // Add custom characters
+  // Add custom characters - birthday icons
   myDisplay.addChar('~', cakeChar);    // cake
   myDisplay.addChar('`', presentChar); // present
   myDisplay.addChar('#', heartChar);   // heart
-  
+
+  // Add custom characters - Christmas icons
+  myDisplay.addChar('^', treeChar);      // tree
+  myDisplay.addChar('&', starChar);      // star
+  myDisplay.addChar('%', snowflakeChar); // snowflake
+
   // Initialize RTC
   if (!rtc.begin()) {
     Serial.println("Couldn't find RTC");
     myDisplay.print("NO RTC");
     while (1);
   }
-  
+
   if (rtc.lostPower()) {
     Serial.println("RTC lost power, setting time...");
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
   }
-  
+
   myDisplay.print("Ready");
   delay(1000);
 }
@@ -171,17 +218,25 @@ void loop() {
       displayBirthdayCountdown(now, 7, 28, "B");
       break;
       
-    case 3:  // Christmas (Dec 24) - label "*"
-      displayCountdown(now, 12, 24, "*");
+    case 3:  // Christmas (Dec 24)
+      displayChristmasCountdown(now, 12, 24);
       break;
   }
   
   delay(100);
 }
 
-void displayCountdown(DateTime now, int month, int day, const char* label) {
+void displayChristmasCountdown(DateTime now, int month, int day) {
   int daysUntil = calculateDaysUntil(now, month, day);
-  sprintf(displayBuffer, "%s %d", label, daysUntil);
+
+  // Cycle through Christmas icons every 2 seconds
+  if (millis() - lastXmasIconSwap >= 2000) {
+    currentXmasIcon = (currentXmasIcon + 1) % NUM_XMAS_ICONS;
+    lastXmasIconSwap = millis();
+  }
+
+  char icon = xmasIconChars[currentXmasIcon];
+  sprintf(displayBuffer, "%c %d", icon, daysUntil);
   myDisplay.print(displayBuffer);
 }
 
