@@ -70,21 +70,21 @@ const uint8_t heartChar[] = {
 };
 
 // Christmas icons
-const int NUM_XMAS_ICONS = 3;
-const char xmasIconChars[] = {'^', '&', '%'};  // tree, star, snowflake
+const int NUM_XMAS_ICONS = 4;
+const char xmasIconChars[] = {'^', '&', '%', '`'};  // tree, star, snowflake, present
 int currentXmasIcon = 0;
 unsigned long lastXmasIconSwap = 0;
 
 // Tree character (maps to '^')
 const uint8_t treeChar[] = {
   7,
-  B01000000,
-  B01101000,
-  B01111100,
-  B11111111,
-  B01111100,
-  B01101000,
-  B01000000,
+  B00100000,
+  B00110100,
+  B00111110,
+  B01111111,
+  B00111110,
+  B00110100,
+  B00100000,
 };
 
 // Star character (maps to '&')
@@ -102,13 +102,13 @@ const uint8_t starChar[] = {
 // Snowflake character (maps to '%')
 const uint8_t snowflakeChar[] = {
   7,
-  B00010010,
-  B01010100,
-  B00111000,
-  B11111111,
-  B00111000,
-  B01010100,
-  B00010010,
+  B00001000,
+  B00101010,
+  B00011100,
+  B01111111,
+  B00011100,
+  B00101010,
+  B00001000,
 };
 
 void setup() {
