@@ -23,6 +23,26 @@ bool lastButton2State = HIGH;
 bool lastButton3State = HIGH;
 int lastDisplayedMinute = -1;  // Track last displayed minute for throttling
 
+// Custom cake character for birthday display (maps to '~' character)
+// Format: width, then column data from left to right (bit 0 = top row)
+//    * * *
+//
+//    * * *
+//    * * *
+//   *******
+//   *******
+//   *******
+const uint8_t cakeChar[] = {
+  7,           // width
+  B01110000,   // col 0: rows 4,5,6
+  B01111101,   // col 1: rows 0,2,3,4,5,6
+  B01110000,   // col 2: rows 4,5,6
+  B01111101,   // col 3: rows 0,2,3,4,5,6
+  B01110000,   // col 4: rows 4,5,6
+  B01111101,   // col 5: rows 0,2,3,4,5,6
+  B01110000    // col 6: rows 4,5,6
+};
+
 void setup() {
   Serial.begin(9600);
   
@@ -36,6 +56,9 @@ void setup() {
   myDisplay.setIntensity(0);  // Start with time brightness
   myDisplay.setTextAlignment(PA_CENTER);
   myDisplay.displayClear();
+
+  // Add custom cake character mapped to '~'
+  myDisplay.addChar('~', cakeChar);
   
   // Initialize RTC
   if (!rtc.begin()) {
@@ -116,12 +139,12 @@ void loop() {
       }
       break;
       
-    case 1:  // Son's birthday (May 30) - label "V"
-      displayCountdown(now, 5, 30, "V");
+    case 1:  // V's birthday (May 30) - cake icon + V
+      displayCountdown(now, 5, 30, "~V");
       break;
-      
-    case 2:  // July 28 - label "B"
-      displayCountdown(now, 7, 28, "B");
+
+    case 2:  // B's birthday (July 28) - cake icon + B
+      displayCountdown(now, 7, 28, "~B");
       break;
       
     case 3:  // Christmas (Dec 24) - label "*"
@@ -136,9 +159,9 @@ void displayCountdown(DateTime now, int month, int day, const char* label) {
   int daysUntil = calculateDaysUntil(now, month, day);
   
   if (daysUntil == 0) {
-    sprintf(displayBuffer, "%s  0", label);
+    sprintf(displayBuffer, "%s 0", label);
   } else {
-    sprintf(displayBuffer, "%s  %d", label, daysUntil);
+    sprintf(displayBuffer, "%s %d", label, daysUntil);
   }
   
   myDisplay.print(displayBuffer);
