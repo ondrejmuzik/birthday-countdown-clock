@@ -1,0 +1,157 @@
+#include <MD_Parola.h>
+#include <MD_MAX72xx.h>
+#include <SPI.h>
+#include <Wire.h>
+#include <RTClib.h>
+
+#define HARDWARE_TYPE MD_MAX72XX::FC16_HW
+#define MAX_DEVICES 4
+#define CS_PIN 10
+#define BUTTON1_PIN 2  // V's birthday (May 30) - label "V"
+#define BUTTON2_PIN 3  // B's birthday - label "B"
+#define BUTTON3_PIN 4  // Christmas (Dec 25) - label "*"
+
+MD_Parola myDisplay = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
+RTC_DS3231 rtc;
+
+char displayBuffer[20];
+int displayMode = 0;  // 0 = time, 1 = birthday1, 2 = birthday1, 3 = christmas
+unsigned long lastDebounceTime = 0;
+const unsigned long debounceDelay = 200;
+bool lastButton1State = HIGH;
+bool lastButton2State = HIGH;
+bool lastButton3State = HIGH;
+
+void setup() {
+  Serial.begin(9600);
+  
+  // Initialize buttons
+  pinMode(BUTTON1_PIN, INPUT_PULLUP);
+  pinMode(BUTTON2_PIN, INPUT_PULLUP);
+  pinMode(BUTTON3_PIN, INPUT_PULLUP);
+  
+  // Initialize display
+  myDisplay.begin();
+  myDisplay.setIntensity(0);  // Start with time brightness
+  myDisplay.setTextAlignment(PA_CENTER);
+  myDisplay.displayClear();
+  
+  // Initialize RTC
+  if (!rtc.begin()) {
+    Serial.println("Couldn't find RTC");
+    myDisplay.print("NO RTC");
+    while (1);
+  }
+  
+  if (rtc.lostPower()) {
+    Serial.println("RTC lost power, setting time...");
+    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  }
+  
+  myDisplay.print("Ready");
+  delay(1000);
+}
+
+void loop() {
+  DateTime now = rtc.now();
+  
+  // Read button states
+  bool button1State = digitalRead(BUTTON1_PIN);
+  bool button2State = digitalRead(BUTTON2_PIN);
+  bool button3State = digitalRead(BUTTON3_PIN);
+  
+  // Button 1 handling (May 30 - "V")
+  if (button1State == LOW && lastButton1State == HIGH) {
+    if ((millis() - lastDebounceTime) > debounceDelay) {
+      if (displayMode == 1) {
+        displayMode = 0;  // Back to time
+        myDisplay.setIntensity(0);
+      } else {
+        displayMode = 1;  // Show birthday countdown
+        myDisplay.setIntensity(4);
+      }
+      lastDebounceTime = millis();
+    }
+  }
+  lastButton1State = button1State;
+  
+  // Button 2 handling (July 28 - "B")
+  if (button2State == LOW && lastButton2State == HIGH) {
+    if ((millis() - lastDebounceTime) > debounceDelay) {
+      if (displayMode == 2) {
+        displayMode = 0;  // Back to time
+        myDisplay.setIntensity(0);
+      } else {
+        displayMode = 2;  // Show July 28 countdown
+        myDisplay.setIntensity(4);
+      }
+      lastDebounceTime = millis();
+    }
+  }
+  lastButton2State = button2State;
+  
+  // Button 3 handling (Christmas - "*")
+  if (button3State == LOW && lastButton3State == HIGH) {
+    if ((millis() - lastDebounceTime) > debounceDelay) {
+      if (displayMode == 3) {
+        displayMode = 0;  // Back to time
+        myDisplay.setIntensity(0);
+      } else {
+        displayMode = 3;  // Show Christmas countdown
+        myDisplay.setIntensity(4);
+      }
+      lastDebounceTime = millis();
+    }
+  }
+  lastButton3State = button3State;
+  
+  // Display based on current mode
+  switch (displayMode) {
+    case 0:  // Time mode
+      sprintf(displayBuffer, "%02d:%02d", now.hour(), now.minute());
+      myDisplay.print(displayBuffer);
+      break;
+      
+    case 1:  // Son's birthday (May 30) - label "V"
+      displayCountdown(now, 5, 30, "V");
+      break;
+      
+    case 2:  // July 28 - label "B"
+      displayCountdown(now, 7, 28, "B");
+      break;
+      
+    case 3:  // Christmas (Dec 25) - label "*"
+      displayCountdown(now, 12, 25, "*");
+      break;
+  }
+  
+  delay(100);
+}
+
+void displayCountdown(DateTime now, int month, int day, const char* label) {
+  int daysUntil = calculateDaysUntil(now, month, day);
+  
+  if (daysUntil == 0) {
+    sprintf(displayBuffer, "%s  0", label);
+  } else {
+    sprintf(displayBuffer, "%s  %d", label, daysUntil);
+  }
+  
+  myDisplay.print(displayBuffer);
+}
+
+int calculateDaysUntil(DateTime now, int targetMonth, int targetDay) {
+  // Create target date for this year
+  DateTime targetDate(now.year(), targetMonth, targetDay, 0, 0, 0);
+  
+  // If date has passed this year, calculate for next year
+  if (now.unixtime() > targetDate.unixtime()) {
+    targetDate = DateTime(now.year() + 1, targetMonth, targetDay, 0, 0, 0);
+  }
+  
+  // Calculate difference in seconds and convert to days
+  long secondsUntil = targetDate.unixtime() - now.unixtime();
+  int daysUntil = secondsUntil / 86400;
+  
+  return daysUntil;
+}
