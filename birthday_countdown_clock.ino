@@ -23,24 +23,59 @@ bool lastButton2State = HIGH;
 bool lastButton3State = HIGH;
 int lastDisplayedMinute = -1;  // Track last displayed minute for throttling
 
-// Custom cake character for birthday display (maps to '~' character)
-// Format: width, then column data from left to right (bit 0 = top row)
-//    * * *
-//
-//    * * *
-//    * * *
-//   *******
-//   *******
-//   *******
+// Animation timing
+unsigned long lastIconSwap = 0;
+int currentIcon = 0;
+const int NUM_ICONS = 4;
+const char iconChars[] = {'~', '`', '@', '#'};  // cake, gift, smiley, heart
+
+// Custom cake character (maps to '~')
 const uint8_t cakeChar[] = {
-  7,           // width
-  B01110000,   // col 0: rows 4,5,6
-  B01111101,   // col 1: rows 0,2,3,4,5,6
-  B01110000,   // col 2: rows 4,5,6
-  B01111101,   // col 3: rows 0,2,3,4,5,6
-  B01110000,   // col 4: rows 4,5,6
-  B01111101,   // col 5: rows 0,2,3,4,5,6
-  B01110000    // col 6: rows 4,5,6
+  7,
+  B00000000,
+  B01111100,
+  B01010101,
+  B01111110,
+  B01010101,
+  B01111100,
+  B00000000
+};
+
+// Custom gift character (maps to '`')
+const uint8_t giftChar[] = {
+  7,
+  B01110000,
+  B01111101,
+  B01110000,
+  B01111101,
+  B01110000,
+  B01111101,
+  B01110000
+};
+
+// Smiley face character (maps to '@')
+const uint8_t smileyChar[] = {
+  8,
+  B00111100,
+  B01000010,
+  B10010101,
+  B10100001,
+  B10100001,
+  B10010101,
+  B01000010,
+  B00111100
+};
+
+// Heart character (maps to '#')
+const uint8_t heartChar[] = {
+  7,
+  B00000110,
+  B00001001,
+  B00010001,
+  B00100010,
+  B00010001,
+  B00001001,
+  B00000110
 };
 
 void setup() {
@@ -57,8 +92,11 @@ void setup() {
   myDisplay.setTextAlignment(PA_CENTER);
   myDisplay.displayClear();
 
-  // Add custom cake character mapped to '~'
-  myDisplay.addChar('~', cakeChar);
+  // Add custom characters
+  myDisplay.addChar('~', cakeChar);    // cake
+  myDisplay.addChar('`', giftChar);    // gift
+  myDisplay.addChar('@', smileyChar);  // smiley
+  myDisplay.addChar('#', heartChar);   // heart
   
   // Initialize RTC
   if (!rtc.begin()) {
@@ -139,12 +177,12 @@ void loop() {
       }
       break;
       
-    case 1:  // V's birthday (May 30) - cake icon + V
-      displayCountdown(now, 5, 30, "~V");
+    case 1:  // V's birthday (May 30)
+      displayBirthdayCountdown(now, 5, 30, "V");
       break;
 
-    case 2:  // B's birthday (July 28) - cake icon + B
-      displayCountdown(now, 7, 28, "~B");
+    case 2:  // B's birthday (July 28)
+      displayBirthdayCountdown(now, 7, 28, "B");
       break;
       
     case 3:  // Christmas (Dec 24) - label "*"
@@ -157,13 +195,21 @@ void loop() {
 
 void displayCountdown(DateTime now, int month, int day, const char* label) {
   int daysUntil = calculateDaysUntil(now, month, day);
-  
-  if (daysUntil == 0) {
-    sprintf(displayBuffer, "%s 0", label);
-  } else {
-    sprintf(displayBuffer, "%s %d", label, daysUntil);
+  sprintf(displayBuffer, "%s %d", label, daysUntil);
+  myDisplay.print(displayBuffer);
+}
+
+void displayBirthdayCountdown(DateTime now, int month, int day, const char* name) {
+  int daysUntil = calculateDaysUntil(now, month, day);
+
+  // Cycle through icons every 2 seconds
+  if (millis() - lastIconSwap >= 2000) {
+    currentIcon = (currentIcon + 1) % NUM_ICONS;
+    lastIconSwap = millis();
   }
-  
+
+  char icon = iconChars[currentIcon];
+  sprintf(displayBuffer, "%c%s %d", icon, name, daysUntil);
   myDisplay.print(displayBuffer);
 }
 
