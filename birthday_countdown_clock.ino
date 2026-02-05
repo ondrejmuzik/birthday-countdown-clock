@@ -23,6 +23,10 @@ bool lastButton2State = HIGH;
 bool lastButton3State = HIGH;
 int lastDisplayedMinute = -1;  // Track last displayed minute for throttling
 
+// Auto-return to clock timing
+unsigned long countdownStartTime = 0;
+const unsigned long countdownTimeout = 30000;  // 30 seconds
+
 // Animation timing
 unsigned long lastIconSwap = 0;
 int currentIcon = 0;
@@ -164,12 +168,13 @@ void loop() {
       } else {
         displayMode = 1;  // Show birthday countdown
         myDisplay.setIntensity(4);
+        countdownStartTime = millis();
       }
       lastDebounceTime = millis();
     }
   }
   lastButton1State = button1State;
-  
+
   // Button 2 handling (July 28 - "B")
   if (button2State == LOW && lastButton2State == HIGH) {
     if ((millis() - lastDebounceTime) > debounceDelay) {
@@ -179,12 +184,13 @@ void loop() {
       } else {
         displayMode = 2;  // Show July 28 countdown
         myDisplay.setIntensity(4);
+        countdownStartTime = millis();
       }
       lastDebounceTime = millis();
     }
   }
   lastButton2State = button2State;
-  
+
   // Button 3 handling (Christmas - "*")
   if (button3State == LOW && lastButton3State == HIGH) {
     if ((millis() - lastDebounceTime) > debounceDelay) {
@@ -194,11 +200,19 @@ void loop() {
       } else {
         displayMode = 3;  // Show Christmas countdown
         myDisplay.setIntensity(4);
+        countdownStartTime = millis();
       }
       lastDebounceTime = millis();
     }
   }
   lastButton3State = button3State;
+
+  // Auto-return to clock after 30 seconds
+  if (displayMode != 0 && (millis() - countdownStartTime >= countdownTimeout)) {
+    displayMode = 0;
+    myDisplay.setIntensity(0);
+    lastDisplayedMinute = -1;  // Force time update
+  }
   
   // Display based on current mode
   switch (displayMode) {
