@@ -165,6 +165,7 @@ void loop() {
       if (displayMode == 1) {
         displayMode = 0;  // Back to time
         myDisplay.setIntensity(0);
+        lastDisplayedMinute = -1;  // Force time update
       } else {
         displayMode = 1;  // Show birthday countdown
         myDisplay.setIntensity(4);
@@ -181,6 +182,7 @@ void loop() {
       if (displayMode == 2) {
         displayMode = 0;  // Back to time
         myDisplay.setIntensity(0);
+        lastDisplayedMinute = -1;  // Force time update
       } else {
         displayMode = 2;  // Show July 28 countdown
         myDisplay.setIntensity(4);
@@ -197,6 +199,7 @@ void loop() {
       if (displayMode == 3) {
         displayMode = 0;  // Back to time
         myDisplay.setIntensity(0);
+        lastDisplayedMinute = -1;  // Force time update
       } else {
         displayMode = 3;  // Show Christmas countdown
         myDisplay.setIntensity(4);
