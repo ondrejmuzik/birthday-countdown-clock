@@ -26,11 +26,11 @@ int lastDisplayedMinute = -1;  // Track last displayed minute for throttling
 // Animation timing
 unsigned long lastIconSwap = 0;
 int currentIcon = 0;
-const int NUM_ICONS = 4;
-const char iconChars[] = {'~', '`', '@', '#'};  // cake, gift, smiley, heart
+const int NUM_ICONS = 3;
+const char iconChars[] = {'~', '`', '#'};  // cake, present, heart
 
-// Custom cake character (maps to '~')
-const uint8_t cakeChar[] = {
+// Custom present character (maps to '~')
+const uint8_t presentChar[] = {
   7,
   B00000000,
   B01111100,
@@ -38,11 +38,11 @@ const uint8_t cakeChar[] = {
   B01111110,
   B01010101,
   B01111100,
-  B00000000
+  B00000000,
 };
 
-// Custom gift character (maps to '`')
-const uint8_t giftChar[] = {
+// Custom cake character (maps to '`')
+const uint8_t cakeChar[] = {
   7,
   B01110000,
   B01111101,
@@ -53,29 +53,16 @@ const uint8_t giftChar[] = {
   B01110000
 };
 
-// Smiley face character (maps to '@')
-const uint8_t smileyChar[] = {
-  8,
-  B00111100,
-  B01000010,
-  B10010101,
-  B10100001,
-  B10100001,
-  B10010101,
-  B01000010,
-  B00111100
-};
-
 // Heart character (maps to '#')
 const uint8_t heartChar[] = {
   7,
-  B00000110,
-  B00001001,
-  B00010001,
+  B00001100,
+  B00010010,
   B00100010,
-  B00010001,
-  B00001001,
-  B00000110
+  B01000100,
+  B00100010,
+  B00010010,
+  B00001100,
 };
 
 void setup() {
@@ -94,8 +81,7 @@ void setup() {
 
   // Add custom characters
   myDisplay.addChar('~', cakeChar);    // cake
-  myDisplay.addChar('`', giftChar);    // gift
-  myDisplay.addChar('@', smileyChar);  // smiley
+  myDisplay.addChar('`', presentChar); // present
   myDisplay.addChar('#', heartChar);   // heart
   
   // Initialize RTC
