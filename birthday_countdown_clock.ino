@@ -9,18 +9,19 @@
 #define CS_PIN 10
 #define BUTTON1_PIN 2  // V's birthday (May 30) - label "V"
 #define BUTTON2_PIN 3  // B's birthday - label "B"
-#define BUTTON3_PIN 4  // Christmas (Dec 25) - label "*"
+#define BUTTON3_PIN 4  // Christmas (Dec 24) - label "*"
 
 MD_Parola myDisplay = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 RTC_DS3231 rtc;
 
 char displayBuffer[20];
-int displayMode = 0;  // 0 = time, 1 = birthday1, 2 = birthday1, 3 = christmas
+int displayMode = 0;  // 0 = time, 1 = birthday1, 2 = birthday2, 3 = christmas
 unsigned long lastDebounceTime = 0;
 const unsigned long debounceDelay = 200;
 bool lastButton1State = HIGH;
 bool lastButton2State = HIGH;
 bool lastButton3State = HIGH;
+int lastDisplayedMinute = -1;  // Track last displayed minute for throttling
 
 void setup() {
   Serial.begin(9600);
@@ -107,9 +108,12 @@ void loop() {
   
   // Display based on current mode
   switch (displayMode) {
-    case 0:  // Time mode
-      sprintf(displayBuffer, "%02d:%02d", now.hour(), now.minute());
-      myDisplay.print(displayBuffer);
+    case 0:  // Time mode - only update when minute changes
+      if (now.minute() != lastDisplayedMinute) {
+        sprintf(displayBuffer, "%02d:%02d", now.hour(), now.minute());
+        myDisplay.print(displayBuffer);
+        lastDisplayedMinute = now.minute();
+      }
       break;
       
     case 1:  // Son's birthday (May 30) - label "V"
@@ -120,8 +124,8 @@ void loop() {
       displayCountdown(now, 7, 28, "B");
       break;
       
-    case 3:  // Christmas (Dec 25) - label "*"
-      displayCountdown(now, 12, 25, "*");
+    case 3:  // Christmas (Dec 24) - label "*"
+      displayCountdown(now, 12, 24, "*");
       break;
   }
   
@@ -141,17 +145,20 @@ void displayCountdown(DateTime now, int month, int day, const char* label) {
 }
 
 int calculateDaysUntil(DateTime now, int targetMonth, int targetDay) {
-  // Create target date for this year
+  // Normalize current date to midnight for accurate day counting
+  DateTime todayMidnight(now.year(), now.month(), now.day(), 0, 0, 0);
+
+  // Create target date for this year (already at midnight)
   DateTime targetDate(now.year(), targetMonth, targetDay, 0, 0, 0);
-  
+
   // If date has passed this year, calculate for next year
-  if (now.unixtime() > targetDate.unixtime()) {
+  if (todayMidnight.unixtime() > targetDate.unixtime()) {
     targetDate = DateTime(now.year() + 1, targetMonth, targetDay, 0, 0, 0);
   }
-  
+
   // Calculate difference in seconds and convert to days
-  long secondsUntil = targetDate.unixtime() - now.unixtime();
+  long secondsUntil = targetDate.unixtime() - todayMidnight.unixtime();
   int daysUntil = secondsUntil / 86400;
-  
+
   return daysUntil;
 }
