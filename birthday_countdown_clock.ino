@@ -267,7 +267,7 @@ void displayBirthdayCountdown(DateTime now, int month, int day, const char* name
   }
 
   char icon = iconChars[currentIcon];
-  sprintf(displayBuffer, "%c%s %d", icon, name, daysUntil);
+  sprintf(displayBuffer, "%s%c %d", name, icon, daysUntil);
   myDisplay.print(displayBuffer);
 }
 
