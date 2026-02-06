@@ -27,53 +27,15 @@ int lastDisplayedMinute = -1;  // Track last displayed minute for throttling
 unsigned long countdownStartTime = 0;
 const unsigned long countdownTimeout = 30000;  // 30 seconds
 
-// Animation timing
-unsigned long lastIconSwap = 0;
-int currentIcon = 0;
-const int NUM_ICONS = 3;
-const char iconChars[] = {'~', '`', '#'};  // cake, present, heart
-
 // Custom present character (maps to '~')
 const uint8_t presentChar[] = {
-  7,
-  B00000000,
+  5,
   B01111100,
   B01010101,
   B01111110,
   B01010101,
   B01111100,
-  B00000000,
 };
-
-// Custom cake character (maps to '`')
-const uint8_t cakeChar[] = {
-  7,
-  B01110000,
-  B01111101,
-  B01110000,
-  B01111101,
-  B01110000,
-  B01111101,
-  B01110000
-};
-
-// Heart character (maps to '#')
-const uint8_t heartChar[] = {
-  7,
-  B00001100,
-  B00010010,
-  B00100010,
-  B01000100,
-  B00100010,
-  B00010010,
-  B00001100,
-};
-
-// Christmas icons
-const int NUM_XMAS_ICONS = 4;
-const char xmasIconChars[] = {'^', '&', '%', '`'};  // tree, star, snowflake, present
-int currentXmasIcon = 0;
-unsigned long lastXmasIconSwap = 0;
 
 // Tree character (maps to '^')
 const uint8_t treeChar[] = {
@@ -85,30 +47,6 @@ const uint8_t treeChar[] = {
   B00111110,
   B00110100,
   B00100000,
-};
-
-// Star character (maps to '&')
-const uint8_t starChar[] = {
-  7,
-  B00001000,
-  B01011000,
-  B00100100,
-  B00010010,
-  B00100100,
-  B01011000,
-  B00001000,
-};
-
-// Snowflake character (maps to '%')
-const uint8_t snowflakeChar[] = {
-  7,
-  B00001000,
-  B00101010,
-  B00011100,
-  B01111111,
-  B00011100,
-  B00101010,
-  B00001000,
 };
 
 void setup() {
@@ -125,15 +63,9 @@ void setup() {
   myDisplay.setTextAlignment(PA_CENTER);
   myDisplay.displayClear();
 
-  // Add custom characters - birthday icons
-  myDisplay.addChar('~', cakeChar);    // cake
-  myDisplay.addChar('`', presentChar); // present
-  myDisplay.addChar('#', heartChar);   // heart
-
-  // Add custom characters - Christmas icons
-  myDisplay.addChar('^', treeChar);      // tree
-  myDisplay.addChar('&', starChar);      // star
-  myDisplay.addChar('%', snowflakeChar); // snowflake
+  // Add custom characters
+  myDisplay.addChar('~', presentChar); // present (birthdays)
+  myDisplay.addChar('^', treeChar);    // tree (christmas)
 
   // Initialize RTC
   if (!rtc.begin()) {
@@ -185,7 +117,7 @@ void loop() {
         lastDisplayedMinute = -1;  // Force time update
       } else {
         displayMode = 2;  // Show July 28 countdown
-        myDisplay.setIntensity(4);
+        myDisplay.setIntensity(3);
         countdownStartTime = millis();
       }
       lastDebounceTime = millis();
@@ -202,7 +134,7 @@ void loop() {
         lastDisplayedMinute = -1;  // Force time update
       } else {
         displayMode = 3;  // Show Christmas countdown
-        myDisplay.setIntensity(4);
+        myDisplay.setIntensity(3);
         countdownStartTime = millis();
       }
       lastDebounceTime = millis();
@@ -245,29 +177,13 @@ void loop() {
 
 void displayChristmasCountdown(DateTime now, int month, int day) {
   int daysUntil = calculateDaysUntil(now, month, day);
-
-  // Cycle through Christmas icons every 2 seconds
-  if (millis() - lastXmasIconSwap >= 2000) {
-    currentXmasIcon = (currentXmasIcon + 1) % NUM_XMAS_ICONS;
-    lastXmasIconSwap = millis();
-  }
-
-  char icon = xmasIconChars[currentXmasIcon];
-  sprintf(displayBuffer, "%c %d", icon, daysUntil);
+  sprintf(displayBuffer, "^ %d", daysUntil);
   myDisplay.print(displayBuffer);
 }
 
 void displayBirthdayCountdown(DateTime now, int month, int day, const char* name) {
   int daysUntil = calculateDaysUntil(now, month, day);
-
-  // Cycle through icons every 2 seconds
-  if (millis() - lastIconSwap >= 2000) {
-    currentIcon = (currentIcon + 1) % NUM_ICONS;
-    lastIconSwap = millis();
-  }
-
-  char icon = iconChars[currentIcon];
-  sprintf(displayBuffer, "%s%c %d", name, icon, daysUntil);
+  sprintf(displayBuffer, "%s~ %d", name, 333);
   myDisplay.print(displayBuffer);
 }
 
