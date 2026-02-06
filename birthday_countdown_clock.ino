@@ -168,7 +168,7 @@ void loop() {
         lastDisplayedMinute = -1;  // Force time update
       } else {
         displayMode = 1;  // Show birthday countdown
-        myDisplay.setIntensity(4);
+        myDisplay.setIntensity(3);
         countdownStartTime = millis();
       }
       lastDebounceTime = millis();
