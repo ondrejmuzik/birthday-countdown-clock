@@ -11,6 +11,10 @@
 #define BUTTON2_PIN 3  // B's birthday - label "B"
 #define BUTTON3_PIN 4  // Christmas (Dec 24) - label "*"
 
+ // DIN  → D11 (MOSI pin - hardware SPI)
+ // CS   → D10 (can be any digital pin)
+ // CLK  → D13 (SCK pin - hardware SPI)
+
 MD_Parola myDisplay = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 RTC_DS3231 rtc;
 
