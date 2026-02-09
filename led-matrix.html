@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LED Matrix Simulator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #eee;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #000;
+            margin-bottom: 20px;
+        }
+
+        .matrix-container {
+            background-color: #222;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .matrix {
+            display: grid;
+            grid-template-columns: repeat(32, 20px);
+            grid-template-rows: repeat(8, 20px);
+            gap: 4px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        /* Vertical separator lines between modules */
+        .separator-line {
+            position: absolute;
+            top: -2px;
+            bottom: -2px;
+            width: 1px;
+            background-color: #888;
+            pointer-events: none;
+        }
+
+        .separator-line:nth-child(1) {
+            left: calc((8 * 20px) + (7 * 4px) + 2px);
+        }
+
+        .separator-line:nth-child(2) {
+            left: calc((16 * 20px) + (15 * 4px) + 2px);
+        }
+
+        .separator-line:nth-child(3) {
+            left: calc((24 * 20px) + (23 * 4px) + 2px);
+        }
+
+        /* Add borders between 8x8 modules */
+        .led:nth-child(8n) {
+            margin-right: 8px;
+        }
+
+        /* Remove margin from the last column */
+        .led:nth-child(32n) {
+            margin-right: 0;
+        }
+
+        .led {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #eee;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            user-select: none;
+            /* border: 1px solid #333; */
+        }
+
+        .led:hover {
+            transform: scale(1.1);
+            border-color: #666;
+        }
+
+        .led.on {
+            background-color: #ff0000;
+            box-shadow: 0 0 5px #ff0000;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            background-color: #444;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #666;
+        }
+
+        .info {
+            color: #aaa;
+            margin-top: 15px;
+            text-align: center;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>32×8 LED Matrix Simulator</h1>
+    
+    <div class="matrix-container">
+        <div class="matrix" id="ledMatrix">
+            <div class="separator-line"></div>
+            <div class="separator-line"></div>
+            <div class="separator-line"></div>
+        </div>
+        
+        <div class="controls">
+            <button onclick="clearAll()">Clear All</button>
+            <button onclick="fillAll()">Fill All</button>
+            <button onclick="exportPattern()">Export Pattern</button>
+        </div>
+        
+        <div class="info">
+            Click or drag across LEDs to toggle them on/off
+        </div>
+        
+        <div id="exportOutput" style="display: none; margin-top: 20px;">
+            <textarea id="exportCode" readonly style="width: 100%; min-height: 200px; font-family: monospace; background-color: #000; color: #0f0; padding: 10px; border: 1px solid #444; border-radius: 5px;"></textarea>
+            <button onclick="copyToClipboard()" style="margin-top: 10px;">Copy to Clipboard</button>
+        </div>
+    </div>
+
+    <script>
+        const ROWS = 8;
+        const COLS = 32;
+        const matrix = document.getElementById('ledMatrix');
+        
+        let isDragging = false;
+        let paintMode = null; // true = turn on, false = turn off
+
+        // Create LED matrix
+        for (let row = 0; row < ROWS; row++) {
+            for (let col = 0; col < COLS; col++) {
+                const led = document.createElement('div');
+                led.className = 'led';
+                led.dataset.row = row;
+                led.dataset.col = col;
+                matrix.appendChild(led);
+            }
+        }
+
+        // Prevent default drag behavior on the matrix
+        matrix.addEventListener('dragstart', e => e.preventDefault());
+
+        matrix.addEventListener('mousedown', e => {
+            const led = e.target;
+            if (!led.classList.contains('led')) return;
+            isDragging = true;
+            // Decide paint mode based on the first LED clicked
+            paintMode = !led.classList.contains('on');
+            led.classList.toggle('on', paintMode);
+            e.preventDefault();
+        });
+
+        matrix.addEventListener('mouseover', e => {
+            if (!isDragging) return;
+            const led = e.target;
+            if (!led.classList.contains('led')) return;
+            led.classList.toggle('on', paintMode);
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            paintMode = null;
+        });
+
+        function clearAll() {
+            const leds = document.querySelectorAll('.led');
+            leds.forEach(led => led.classList.remove('on'));
+        }
+
+        function fillAll() {
+            const leds = document.querySelectorAll('.led');
+            leds.forEach(led => led.classList.add('on'));
+        }
+
+        function exportPattern() {
+            const leds = document.querySelectorAll('.led');
+            let patterns = [];
+
+            // Process each 8x8 module (4 modules total)
+            // Output is rotated 90° clockwise: each byte = one column
+            // Column 7 (rightmost) becomes first byte, column 0 (leftmost) becomes last byte
+            // Within each byte, row 0 = MSB (bit 7), row 7 = LSB (bit 0)
+            for (let module = 0; module < 4; module++) {
+                let moduleData = [];
+
+                // Iterate columns left-to-right (col 0 = first byte)
+                for (let col = 0; col < 8; col++) {
+                    let byte = 0;
+
+                    // Each row maps to a bit: row 0 = bit 0 (LSB), row 7 = bit 7 (MSB)
+                    for (let row = 0; row < ROWS; row++) {
+                        const ledIndex = row * COLS + (module * 8) + col;
+                        const led = leds[ledIndex];
+
+                        if (led.classList.contains('on')) {
+                            byte |= (1 << row);
+                        }
+                    }
+
+                    // Convert to binary string format
+                    const binaryStr = 'B' + byte.toString(2).padStart(8, '0');
+                    moduleData.push(binaryStr);
+                }
+
+                // Create the array definition for this module
+                const arrayName = `pattern${module + 1}`;
+                let code = `const uint8_t ${arrayName}[] = {\n`;
+                code += `  ${ROWS},\n`;
+                moduleData.forEach((line, index) => {
+                    code += `  ${line}`;
+                    if (index < moduleData.length - 1) {
+                        code += ',';
+                    }
+                    code += '\n';
+                });
+                code += '};';
+
+                patterns.push(code);
+            }
+            
+            // Display all patterns
+            const output = patterns.join('\n\n');
+            document.getElementById('exportCode').value = output;
+            document.getElementById('exportOutput').style.display = 'block';
+        }
+
+        function copyToClipboard() {
+            const textarea = document.getElementById('exportCode');
+            textarea.select();
+            document.execCommand('copy');
+            
+            // Visual feedback
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = 'Copied!';
+            setTimeout(() => {
+                button.textContent = originalText;
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
