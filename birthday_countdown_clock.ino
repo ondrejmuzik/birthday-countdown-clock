@@ -31,6 +31,10 @@ int lastDisplayedMinute = -1;  // Track last displayed minute for throttling
 unsigned long countdownStartTime = 0;
 const unsigned long countdownTimeout = 30000;  // 30 seconds
 
+// Display intensity (0-15)
+const int clockIntensity = 1;
+const int countdownIntensity = 6;
+
 const uint8_t vChar[] = {
   5,
   B00001111,
@@ -91,7 +95,7 @@ void setup() {
   
   // Initialize display
   myDisplay.begin();
-  myDisplay.setIntensity(0);  // Start with time brightness
+  myDisplay.setIntensity(clockIntensity);
   myDisplay.setTextAlignment(PA_CENTER);
   myDisplay.displayClear();
 
@@ -131,11 +135,11 @@ void loop() {
     if ((millis() - lastDebounceTime) > debounceDelay) {
       if (displayMode == 1) {
         displayMode = 0;  // Back to time
-        myDisplay.setIntensity(0);
+        myDisplay.setIntensity(clockIntensity);
         lastDisplayedMinute = -1;  // Force time update
       } else {
         displayMode = 1;  // Show birthday countdown
-        myDisplay.setIntensity(3);
+        myDisplay.setIntensity(countdownIntensity);
         countdownStartTime = millis();
       }
       lastDebounceTime = millis();
@@ -148,11 +152,11 @@ void loop() {
     if ((millis() - lastDebounceTime) > debounceDelay) {
       if (displayMode == 2) {
         displayMode = 0;  // Back to time
-        myDisplay.setIntensity(0);
+        myDisplay.setIntensity(clockIntensity);
         lastDisplayedMinute = -1;  // Force time update
       } else {
         displayMode = 2;  // Show July 28 countdown
-        myDisplay.setIntensity(3);
+        myDisplay.setIntensity(countdownIntensity);
         countdownStartTime = millis();
       }
       lastDebounceTime = millis();
@@ -165,11 +169,11 @@ void loop() {
     if ((millis() - lastDebounceTime) > debounceDelay) {
       if (displayMode == 3) {
         displayMode = 0;  // Back to time
-        myDisplay.setIntensity(0);
+        myDisplay.setIntensity(clockIntensity);
         lastDisplayedMinute = -1;  // Force time update
       } else {
         displayMode = 3;  // Show Christmas countdown
-        myDisplay.setIntensity(3);
+        myDisplay.setIntensity(countdownIntensity);
         countdownStartTime = millis();
       }
       lastDebounceTime = millis();
@@ -180,7 +184,7 @@ void loop() {
   // Auto-return to clock after 30 seconds
   if (displayMode != 0 && (millis() - countdownStartTime >= countdownTimeout)) {
     displayMode = 0;
-    myDisplay.setIntensity(0);
+    myDisplay.setIntensity(clockIntensity);
     lastDisplayedMinute = -1;  // Force time update
   }
   
