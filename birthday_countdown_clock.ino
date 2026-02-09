@@ -239,13 +239,13 @@ void loop() {
 
 void displayChristmasCountdown(DateTime now, int month, int day) {
   int daysUntil = calculateDaysUntil(now, month, day);
-  sprintf(displayBuffer, "^ %d", daysUntil);
+  sprintf(displayBuffer, "^  %3d", daysUntil);
   myDisplay.print(displayBuffer);
 }
 
 void displayBirthdayCountdown(DateTime now, int month, int day, const char* name) {
   int daysUntil = calculateDaysUntil(now, month, day);
-  sprintf(displayBuffer, "%s@%d", name, daysUntil);
+  sprintf(displayBuffer, "%s@%3d", name, daysUntil);
   myDisplay.print(displayBuffer);
 }
 
