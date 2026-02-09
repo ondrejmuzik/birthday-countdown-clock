@@ -32,9 +32,10 @@ unsigned long countdownStartTime = 0;
 const unsigned long countdownTimeout = 30000;  // 30 seconds
 
 // Display intensity (0-15)
-const int clockIntensity = 1;
-const int countdownIntensity = 6;
+const int clockIntensity = 0;
+const int countdownIntensity = 3;
 
+// Custom V character (maps to 'V')
 const uint8_t vChar[] = {
   5,
   B00001111,
@@ -43,6 +44,8 @@ const uint8_t vChar[] = {
   B00110000,
   B00001111,
 };
+
+// Custom B character (maps to 'B')
 const uint8_t bChar[] = {
   5,
   B01111111,
@@ -51,6 +54,8 @@ const uint8_t bChar[] = {
   B01001001,
   B00110110,
 };
+
+// Custom cake character (maps to '@')
 const uint8_t cakeChar[] = {
   8,
   B01110000,
@@ -65,23 +70,40 @@ const uint8_t cakeChar[] = {
 
 // Custom present character (maps to '~')
 const uint8_t presentChar[] = {
-  5,
+  8,
+  B00000000,
   B01111100,
   B01010101,
   B01111110,
   B01010101,
   B01111100,
+  B00000000,
+  B00000000,
 };
 
 // Tree character (maps to '^')
 const uint8_t treeChar[] = {
-  7,
+  8,
   B00100000,
   B00110100,
   B00111110,
   B01111111,
   B00111110,
   B00110100,
+  B00100000,
+  B00100000,
+};
+
+// Star character (maps to '&')
+const uint8_t starChar[] = {
+  8,
+  B00001000,
+  B01011000,
+  B00100100,
+  B00010010,
+  B00100100,
+  B01011000,
+  B00001000,
   B00100000,
 };
 
@@ -100,8 +122,9 @@ void setup() {
   myDisplay.displayClear();
 
   // Add custom characters
-  myDisplay.addChar('~', presentChar); // present (birthdays)
-  myDisplay.addChar('^', treeChar);    // tree (christmas)
+  myDisplay.addChar('~', presentChar);
+  myDisplay.addChar('^', treeChar);
+  myDisplay.addChar('*', starChar);
   myDisplay.addChar('V', vChar);
   myDisplay.addChar('B', bChar);
   myDisplay.addChar('@', cakeChar);
