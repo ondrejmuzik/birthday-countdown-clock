@@ -27,6 +27,34 @@ int lastDisplayedMinute = -1;  // Track last displayed minute for throttling
 unsigned long countdownStartTime = 0;
 const unsigned long countdownTimeout = 30000;  // 30 seconds
 
+const uint8_t vChar[] = {
+  5,
+  B00001111,
+  B00110000,
+  B01000000,
+  B00110000,
+  B00001111,
+};
+const uint8_t bChar[] = {
+  5,
+  B01111111,
+  B01001001,
+  B01001001,
+  B01001001,
+  B00110110,
+};
+const uint8_t cakeChar[] = {
+  8,
+  B01110000,
+  B01111101,
+  B01110000,
+  B01111101,
+  B01110000,
+  B01111101,
+  B01110000,
+  B00000000,
+};
+
 // Custom present character (maps to '~')
 const uint8_t presentChar[] = {
   5,
@@ -66,6 +94,9 @@ void setup() {
   // Add custom characters
   myDisplay.addChar('~', presentChar); // present (birthdays)
   myDisplay.addChar('^', treeChar);    // tree (christmas)
+  myDisplay.addChar('V', vChar);
+  myDisplay.addChar('B', bChar);
+  myDisplay.addChar('@', cakeChar);
 
   // Initialize RTC
   if (!rtc.begin()) {
@@ -183,7 +214,7 @@ void displayChristmasCountdown(DateTime now, int month, int day) {
 
 void displayBirthdayCountdown(DateTime now, int month, int day, const char* name) {
   int daysUntil = calculateDaysUntil(now, month, day);
-  sprintf(displayBuffer, "%s~ %d", name, 333);
+  sprintf(displayBuffer, "%s@%d", name, daysUntil);
   myDisplay.print(displayBuffer);
 }
 
