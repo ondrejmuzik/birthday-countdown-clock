@@ -42,6 +42,12 @@ int iconIndex = 0;
 const char birthdayIcons[] = {'@', '~', '#'};   // cake, present, heart
 const char christmasIcons[] = {'^', '*', '~'};   // tree, star, present
 
+// Dot display state
+bool dotDisplayActive = false;
+unsigned long dotDisplayStartTime = 0;
+int dotFullScreens = 0;     // number of full 256-LED pages
+int dotRemainder = 0;       // leftover dots after full pages
+
 // Custom V character (maps to 'V')
 const uint8_t vChar[] = {
   5,
@@ -114,7 +120,7 @@ const uint8_t treeChar[] = {
   B00000000,
 };
 
-// Star character (maps to '&')
+// Star character (maps to '*')
 const uint8_t starChar[] = {
   8,
   B00001000,
@@ -126,6 +132,37 @@ const uint8_t starChar[] = {
   B00001000,
   B00000000
 };
+
+// Forward declarations
+int calculateDaysUntil(DateTime now, int targetMonth, int targetDay);
+
+void handleButtonPress(int buttonMode, int targetMonth, int targetDay) {
+  if (displayMode == buttonMode && dotDisplayActive) {
+    // 3rd press: dot display -> back to clock
+    dotDisplayActive = false;
+    displayMode = 0;
+    myDisplay.displayClear();
+    myDisplay.setIntensity(clockIntensity);
+    lastDisplayedMinute = -1;
+  } else if (displayMode == buttonMode && !dotDisplayActive) {
+    // 2nd press: text countdown -> dot display
+    dotDisplayActive = true;
+    int daysUntil = calculateDaysUntil(rtc.now(), targetMonth, targetDay);
+    dotFullScreens = daysUntil / 256;
+    dotRemainder = daysUntil % 256;
+    dotDisplayStartTime = millis();
+    countdownStartTime = millis();  // reset auto-return timer
+    myDisplay.displayClear();
+  } else {
+    // 1st press: any state -> text countdown
+    displayMode = buttonMode;
+    dotDisplayActive = false;
+    myDisplay.setIntensity(countdownIntensity);
+    iconIndex = 0;
+    lastIconSwitch = millis();
+    countdownStartTime = millis();
+  }
+}
 
 void setup() {
   Serial.begin(9600);
@@ -177,17 +214,7 @@ void loop() {
   // Button 1 handling (May 30 - "V")
   if (button1State == LOW && lastButton1State == HIGH) {
     if ((millis() - lastDebounceTime) > debounceDelay) {
-      if (displayMode == 1) {
-        displayMode = 0;  // Back to time
-        myDisplay.setIntensity(clockIntensity);
-        lastDisplayedMinute = -1;  // Force time update
-      } else {
-        displayMode = 1;  // Show birthday countdown
-        myDisplay.setIntensity(countdownIntensity);
-        iconIndex = 0;
-        lastIconSwitch = millis();
-        countdownStartTime = millis();
-      }
+      handleButtonPress(1, 5, 30);
       lastDebounceTime = millis();
     }
   }
@@ -196,17 +223,7 @@ void loop() {
   // Button 2 handling (July 28 - "B")
   if (button2State == LOW && lastButton2State == HIGH) {
     if ((millis() - lastDebounceTime) > debounceDelay) {
-      if (displayMode == 2) {
-        displayMode = 0;  // Back to time
-        myDisplay.setIntensity(clockIntensity);
-        lastDisplayedMinute = -1;  // Force time update
-      } else {
-        displayMode = 2;  // Show July 28 countdown
-        myDisplay.setIntensity(countdownIntensity);
-        iconIndex = 0;
-        lastIconSwitch = millis();
-        countdownStartTime = millis();
-      }
+      handleButtonPress(2, 7, 28);
       lastDebounceTime = millis();
     }
   }
@@ -215,17 +232,7 @@ void loop() {
   // Button 3 handling (Christmas - "*")
   if (button3State == LOW && lastButton3State == HIGH) {
     if ((millis() - lastDebounceTime) > debounceDelay) {
-      if (displayMode == 3) {
-        displayMode = 0;  // Back to time
-        myDisplay.setIntensity(clockIntensity);
-        lastDisplayedMinute = -1;  // Force time update
-      } else {
-        displayMode = 3;  // Show Christmas countdown
-        myDisplay.setIntensity(countdownIntensity);
-        iconIndex = 0;
-        lastIconSwitch = millis();
-        countdownStartTime = millis();
-      }
+      handleButtonPress(3, 12, 24);
       lastDebounceTime = millis();
     }
   }
@@ -234,12 +241,14 @@ void loop() {
   // Auto-return to clock after 30 seconds
   if (displayMode != 0 && (millis() - countdownStartTime >= countdownTimeout)) {
     displayMode = 0;
+    dotDisplayActive = false;
+    myDisplay.displayClear();
     myDisplay.setIntensity(clockIntensity);
     lastDisplayedMinute = -1;  // Force time update
   }
   
-  // Rotate icons every 3 seconds in countdown modes
-  if (displayMode != 0 && (millis() - lastIconSwitch >= iconInterval)) {
+  // Rotate icons every 3 seconds in countdown modes (not during dot display)
+  if (displayMode != 0 && !dotDisplayActive && (millis() - lastIconSwitch >= iconInterval)) {
     iconIndex = (iconIndex + 1) % 3;
     lastIconSwitch = millis();
   }
@@ -253,21 +262,73 @@ void loop() {
         lastDisplayedMinute = now.minute();
       }
       break;
-      
+
     case 1:  // V's birthday (May 30)
-      displayBirthdayCountdown(now, 5, 30, "V", birthdayIcons[iconIndex]);
-      break;
-
     case 2:  // B's birthday (July 28)
-      displayBirthdayCountdown(now, 7, 28, "B", birthdayIcons[iconIndex]);
-      break;
-
     case 3:  // Christmas (Dec 24)
-      displayChristmasCountdown(now, 12, 24, christmasIcons[iconIndex]);
+      if (dotDisplayActive) {
+        handleDotDisplay();
+      } else if (displayMode == 1) {
+        displayBirthdayCountdown(now, 5, 30, "V", birthdayIcons[iconIndex]);
+      } else if (displayMode == 2) {
+        displayBirthdayCountdown(now, 7, 28, "B", birthdayIcons[iconIndex]);
+      } else {
+        displayChristmasCountdown(now, 12, 24, christmasIcons[iconIndex]);
+      }
       break;
   }
   
   delay(100);
+}
+
+void displayDots(int numDots) {
+  MD_MAX72XX *mx = myDisplay.getGraphicObject();
+  mx->control(MD_MAX72XX::UPDATE, MD_MAX72XX::OFF);  // buffer changes
+  mx->clear();
+
+  // Fill left-to-right, bottom-to-top (row 7 first, then row 6, etc.)
+  // Each row has 32 columns; dot index = row * 32 + column_position
+  for (int c = 0; c < 32; c++) {
+    int col = 31 - c;  // col 0 is rightmost in FC16_HW, so invert
+    uint8_t colValue = 0;
+    for (int row = 0; row < 8; row++) {
+      if (row * 32 + c < numDots) {
+        colValue |= (1 << (7 - row));
+      }
+    }
+    mx->setColumn(col, colValue);
+  }
+
+  mx->control(MD_MAX72XX::UPDATE, MD_MAX72XX::ON);  // flush to display
+}
+
+void handleDotDisplay() {
+  const unsigned long phaseDuration = 3000;  // 3s per phase
+
+  if (dotFullScreens == 0) {
+    // No overflow — just show dots as static display
+    displayDots(dotRemainder);
+    myDisplay.setIntensity(countdownIntensity);
+    return;
+  }
+
+  // If remainder is 0 (exact multiple of 256), treat as one fewer full screen
+  // and show 256 dots in the remainder phase instead of a blank screen
+  int effectiveFullScreens = dotRemainder == 0 ? dotFullScreens - 1 : dotFullScreens;
+  int effectiveRemainder = dotRemainder == 0 ? 256 : dotRemainder;
+
+  // Cycle: [full screen, 3s] x N ... [remainder, 3s]
+  int totalPhases = effectiveFullScreens + 1;  // +1 for remainder phase
+  unsigned long cycleDuration = (unsigned long)totalPhases * phaseDuration;
+  unsigned long elapsed = (millis() - dotDisplayStartTime) % cycleDuration;
+  int currentPhase = elapsed / phaseDuration;
+
+  if (currentPhase < effectiveFullScreens) {
+    displayDots(256);
+  } else {
+    displayDots(effectiveRemainder);
+  }
+  myDisplay.setIntensity(countdownIntensity);
 }
 
 void displayChristmasCountdown(DateTime now, int month, int day, char icon) {
