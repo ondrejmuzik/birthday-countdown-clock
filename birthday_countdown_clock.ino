@@ -28,8 +28,8 @@ unsigned long countdownStartTime = 0;
 const unsigned long countdownTimeout = 30000;  // 30 seconds
 
 // Display intensity (0-15)
-const int clockIntensity = 0;
-const int countdownIntensity = 3;
+const int clockIntensity = 5;
+const int countdownIntensity = 10;
 
 // Icon animation
 const unsigned long iconInterval = 3000;  // 3 seconds
@@ -243,11 +243,7 @@ void loop() {
     lastDisplayedMinute = -1;  // Force time update
   }
   
-  // Rotate icons every 3 seconds in countdown modes (not during dot display)
-  if (displayMode != 0 && !dotDisplayActive && (millis() - lastIconSwitch >= iconInterval)) {
-    iconIndex = (iconIndex + 1) % 3;
-    lastIconSwitch = millis();
-  }
+  // Icon rotation reserved for future imminent-date feature
 
   // Display based on current mode
   switch (displayMode) {
@@ -265,11 +261,11 @@ void loop() {
       if (dotDisplayActive) {
         handleDotDisplay();
       } else if (displayMode == 1) {
-        displayBirthdayCountdown(now, 5, 30, "V", birthdayIcons[iconIndex]);
+        displayBirthdayCountdown(now, 5, 30, "V", '@');  // cake
       } else if (displayMode == 2) {
-        displayBirthdayCountdown(now, 7, 28, "B", birthdayIcons[iconIndex]);
+        displayBirthdayCountdown(now, 7, 28, "B", '@');  // cake
       } else {
-        displayChristmasCountdown(now, 12, 24, christmasIcons[iconIndex]);
+        displayChristmasCountdown(now, 12, 24, '^');  // tree
       }
       break;
   }
