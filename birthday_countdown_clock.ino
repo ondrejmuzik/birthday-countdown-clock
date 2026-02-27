@@ -28,8 +28,15 @@ unsigned long countdownStartTime = 0;
 const unsigned long countdownTimeout = 30000;  // 30 seconds
 
 // Display intensity (0-15)
-const int clockIntensity = 5;
-const int countdownIntensity = 10;
+int clockIntensity = 6;
+int countdownIntensity = 9;
+
+// DST offset (0 = off, 1 = +1 hour)
+int dstOffset = 0;
+
+// Simultaneous button press tracking
+unsigned long simPressStartTime = 0;
+bool simPressHandled = false;
 
 // Icon animation
 const unsigned long iconInterval = 3000;  // 3 seconds
@@ -64,7 +71,7 @@ const uint8_t bChar[] = {
   B00110110,
 };
 
-// Custom cake character (maps to '@')
+// Cake character (maps to '@')
 const uint8_t cakeChar[] = {
   8,
   B01110000,
@@ -90,7 +97,7 @@ const uint8_t heartChar[] = {
   B00000000,
 };
 
-// Custom present character (maps to '~')
+// Present character (maps to '~')
 const uint8_t presentChar[] = {
   8,
   B00000000,
@@ -131,6 +138,20 @@ const uint8_t starChar[] = {
 
 // Forward declarations
 int calculateDaysUntil(DateTime now, int targetMonth, int targetDay);
+
+void handleSimultaneousPress(int combo) {
+  if (combo == 12) {
+    clockIntensity = max(0, clockIntensity - 3);
+    countdownIntensity = max(0, countdownIntensity - 3);
+  } else if (combo == 23) {
+    clockIntensity = min(15, clockIntensity + 3);
+    countdownIntensity = min(15, countdownIntensity + 3);
+  } else if (combo == 13) {
+    dstOffset = dstOffset == 0 ? 1 : 0;
+    lastDisplayedMinute = -1;  // force clock redraw
+  }
+  myDisplay.setIntensity(displayMode == 0 ? clockIntensity : countdownIntensity);
+}
 
 void handleButtonPress(int buttonMode, int targetMonth, int targetDay) {
   if (displayMode == buttonMode && dotDisplayActive) {
@@ -207,8 +228,25 @@ void loop() {
   bool button2State = digitalRead(BUTTON2_PIN);
   bool button3State = digitalRead(BUTTON3_PIN);
   
+  // Simultaneous press detection (1 second hold required)
+  bool combo12 = (button1State == LOW && button2State == LOW && button3State == HIGH);
+  bool combo23 = (button1State == HIGH && button2State == LOW && button3State == LOW);
+  bool combo13 = (button1State == LOW && button2State == HIGH && button3State == LOW);
+  bool anyCombo = combo12 || combo23 || combo13;
+
+  if (anyCombo) {
+    if (simPressStartTime == 0) simPressStartTime = millis();
+    if (!simPressHandled && (millis() - simPressStartTime >= 1000)) {
+      handleSimultaneousPress(combo12 ? 12 : (combo23 ? 23 : 13));
+      simPressHandled = true;
+    }
+  } else {
+    simPressStartTime = 0;
+    simPressHandled = false;
+  }
+
   // Button 1 handling (May 30 - "V")
-  if (button1State == LOW && lastButton1State == HIGH) {
+  if (!anyCombo && button1State == LOW && lastButton1State == HIGH) {
     if ((millis() - lastDebounceTime) > debounceDelay) {
       handleButtonPress(1, 5, 30);
       lastDebounceTime = millis();
@@ -217,7 +255,7 @@ void loop() {
   lastButton1State = button1State;
 
   // Button 2 handling (July 28 - "B")
-  if (button2State == LOW && lastButton2State == HIGH) {
+  if (!anyCombo && button2State == LOW && lastButton2State == HIGH) {
     if ((millis() - lastDebounceTime) > debounceDelay) {
       handleButtonPress(2, 7, 28);
       lastDebounceTime = millis();
@@ -226,7 +264,7 @@ void loop() {
   lastButton2State = button2State;
 
   // Button 3 handling (Christmas - "*")
-  if (button3State == LOW && lastButton3State == HIGH) {
+  if (!anyCombo && button3State == LOW && lastButton3State == HIGH) {
     if ((millis() - lastDebounceTime) > debounceDelay) {
       handleButtonPress(3, 12, 24);
       lastDebounceTime = millis();
@@ -249,7 +287,8 @@ void loop() {
   switch (displayMode) {
     case 0:  // Time mode - only update when minute changes
       if (now.minute() != lastDisplayedMinute) {
-        sprintf(displayBuffer, "%02d:%02d", now.hour(), now.minute());
+        int displayHour = (now.hour() + dstOffset) % 24;
+        sprintf(displayBuffer, "%02d:%02d", displayHour, now.minute());
         myDisplay.print(displayBuffer);
         lastDisplayedMinute = now.minute();
       }
